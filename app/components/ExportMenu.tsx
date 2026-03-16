@@ -17,6 +17,214 @@ interface ExportMenuProps {
 
 type ExportFormat = "png" | "pdf";
 
+function colLetter(col: number): string {
+  let s = "";
+  let c = col;
+  while (c > 0) {
+    c--;
+    s = String.fromCharCode(65 + (c % 26)) + s;
+    c = Math.floor(c / 26);
+  }
+  return s;
+}
+
+async function downloadExcel(
+  entries: Entry[],
+  members: Member[],
+  showDescription: boolean,
+  taxValue: number,
+  deliveryValue: number
+) {
+  const ExcelJS = await import("exceljs");
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Split");
+
+  const filled = entries.filter((e) => e.cost > 0);
+  if (filled.length === 0) return;
+
+  const colCost = showDescription ? 3 : 2;
+  const colAssignStart = colCost + 1;
+  const colShareStart = colAssignStart + members.length + 1;
+  const dataStartRow = 2;
+  const dataEndRow = dataStartRow + filled.length - 1;
+
+  // Headers
+  const headers: string[] = ["#"];
+  if (showDescription) headers.push("Description");
+  headers.push("Cost");
+  members.forEach((m) => headers.push(`${m.name} (assigned)`));
+  headers.push("");
+  members.forEach((m) => headers.push(`${m.name} (share)`));
+
+  const headerRow = ws.addRow(headers);
+  headerRow.font = { bold: true };
+  headerRow.eachCell((cell) => {
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "F3F4F6" },
+    };
+    cell.border = {
+      bottom: { style: "thin", color: { argb: "D1D5DB" } },
+    };
+  });
+
+  // Data rows
+  filled.forEach((entry, i) => {
+    const row: (string | number)[] = [i + 1];
+    if (showDescription) row.push(entry.description || "");
+    row.push(entry.cost);
+    members.forEach((m) => row.push(entry.assignees[m.id] ? 1 : 0));
+    row.push("");
+
+    const excelRow = ws.addRow(row);
+    const r = dataStartRow + i;
+
+    // Share formula cells
+    members.forEach((m, mi) => {
+      const costCell = colLetter(colCost);
+      const assignCell = colLetter(colAssignStart + mi);
+      const assignRangeStart = colLetter(colAssignStart);
+      const assignRangeEnd = colLetter(colAssignStart + members.length - 1);
+
+      const shareCol = colShareStart + mi;
+      const cell = excelRow.getCell(shareCol);
+      cell.value = {
+        formula: `IF(${assignCell}${r}>0,${costCell}${r}/SUM(${assignRangeStart}${r}:${assignRangeEnd}${r}),0)`,
+        result: undefined,
+      };
+      cell.numFmt = "$#,##0.00";
+    });
+
+    // Format cost cell
+    excelRow.getCell(colCost).numFmt = "$#,##0.00";
+  });
+
+  // Blank row
+  ws.addRow([]);
+  const summaryStartRow = dataEndRow + 2;
+
+  // Subtotal row
+  const subtotalRowData: (string | number)[] = [];
+  subtotalRowData[0] = "Subtotal";
+  const subtotalRow = ws.addRow(subtotalRowData);
+  subtotalRow.font = { bold: true };
+
+  members.forEach((_, mi) => {
+    const shareColLtr = colLetter(colShareStart + mi);
+    const cell = subtotalRow.getCell(colShareStart + mi);
+    cell.value = {
+      formula: `SUM(${shareColLtr}${dataStartRow}:${shareColLtr}${dataEndRow})`,
+      result: undefined,
+    };
+    cell.numFmt = "$#,##0.00";
+  });
+
+  let currentRow = summaryStartRow;
+
+  // Tax row
+  if (taxValue > 0) {
+    currentRow++;
+    const taxRowData: (string | number)[] = [];
+    taxRowData[0] = "Tax";
+    const taxRow = ws.addRow(taxRowData);
+    taxRow.getCell(colCost).value = taxValue;
+    taxRow.getCell(colCost).numFmt = "$#,##0.00";
+
+    const grandSubCol = colLetter(colShareStart);
+    const grandSubEndCol = colLetter(colShareStart + members.length - 1);
+    const grandSubFormula = `SUM(${grandSubCol}${summaryStartRow}:${grandSubEndCol}${summaryStartRow})`;
+
+    members.forEach((_, mi) => {
+      const shareColLtr = colLetter(colShareStart + mi);
+      const cell = taxRow.getCell(colShareStart + mi);
+      cell.value = {
+        formula: `IF(${grandSubFormula}>0,${shareColLtr}${summaryStartRow}/${grandSubFormula}*${colLetter(colCost)}${currentRow},0)`,
+        result: undefined,
+      };
+      cell.numFmt = "$#,##0.00";
+    });
+  }
+
+  // Delivery row
+  if (deliveryValue > 0) {
+    currentRow++;
+    const delRowData: (string | number)[] = [];
+    delRowData[0] = "Delivery";
+    const delRow = ws.addRow(delRowData);
+    delRow.getCell(colCost).value = deliveryValue;
+    delRow.getCell(colCost).numFmt = "$#,##0.00";
+
+    const grandSubCol = colLetter(colShareStart);
+    const grandSubEndCol = colLetter(colShareStart + members.length - 1);
+    const grandSubFormula = `SUM(${grandSubCol}${summaryStartRow}:${grandSubEndCol}${summaryStartRow})`;
+
+    members.forEach((_, mi) => {
+      const shareColLtr = colLetter(colShareStart + mi);
+      const cell = delRow.getCell(colShareStart + mi);
+      cell.value = {
+        formula: `IF(${grandSubFormula}>0,${shareColLtr}${summaryStartRow}/${grandSubFormula}*${colLetter(colCost)}${currentRow},0)`,
+        result: undefined,
+      };
+      cell.numFmt = "$#,##0.00";
+    });
+  }
+
+  // Total row
+  currentRow++;
+  const totalRowData: (string | number)[] = [];
+  totalRowData[0] = "TOTAL";
+  const totalRow = ws.addRow(totalRowData);
+  totalRow.font = { bold: true, size: 12 };
+
+  members.forEach((_, mi) => {
+    const shareColLtr = colLetter(colShareStart + mi);
+    const cell = totalRow.getCell(colShareStart + mi);
+    cell.value = {
+      formula: `SUM(${shareColLtr}${summaryStartRow}:${shareColLtr}${currentRow - 1})`,
+      result: undefined,
+    };
+    cell.numFmt = "$#,##0.00";
+    cell.font = { bold: true, size: 12 };
+  });
+
+  // Grand total row
+  ws.addRow([]);
+  const grandTotalRowData: (string | number)[] = [];
+  grandTotalRowData[0] = "GRAND TOTAL";
+  const grandTotalRow = ws.addRow(grandTotalRowData);
+  grandTotalRow.font = { bold: true, size: 12 };
+
+  const firstShareCol = colLetter(colShareStart);
+  const lastShareCol = colLetter(colShareStart + members.length - 1);
+  const grandTotalCell = grandTotalRow.getCell(colShareStart);
+  grandTotalCell.value = {
+    formula: `SUM(${firstShareCol}${currentRow}:${lastShareCol}${currentRow})`,
+    result: undefined,
+  };
+  grandTotalCell.numFmt = "$#,##0.00";
+  grandTotalCell.font = { bold: true, size: 12 };
+
+  // Column widths
+  ws.getColumn(1).width = 5;
+  if (showDescription) ws.getColumn(2).width = 20;
+  ws.getColumn(colCost).width = 12;
+  for (let i = 0; i < members.length; i++) {
+    ws.getColumn(colAssignStart + i).width = 14;
+    ws.getColumn(colShareStart + i).width = 16;
+  }
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "splitor-receipt.xlsx";
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
 async function captureReceipt(el: HTMLElement): Promise<HTMLCanvasElement> {
   const html2canvas = (await import("html2canvas")).default;
   return html2canvas(el, {
@@ -151,38 +359,89 @@ export default function ExportMenu({
     [busy]
   );
 
+  const handleExcelExport = useCallback(
+    async (action: "download" | "share") => {
+      if (busy) return;
+      setOpenMenu(null);
+      setBusy(true);
+      try {
+        if (action === "download") {
+          await downloadExcel(entries, members, showDescription, taxValue, deliveryValue);
+        } else {
+          await downloadExcel(entries, members, showDescription, taxValue, deliveryValue);
+        }
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, entries, members, showDescription, taxValue, deliveryValue]
+  );
+
+  const dropdownItems = (action: "download" | "share", isMobile: boolean) => (
+    <div
+      className={`absolute z-50 min-w-[100px] rounded-md border border-gray-200 bg-white py-1 shadow-lg ${
+        isMobile ? "bottom-full mb-1" : "top-full mt-1"
+      }`}
+    >
+      <button
+        onClick={() => handleExport(action, "png")}
+        className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+      >
+        as PNG
+      </button>
+      <button
+        onClick={() => handleExport(action, "pdf")}
+        className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+      >
+        as PDF
+      </button>
+      <button
+        onClick={() => handleExcelExport(action)}
+        className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+      >
+        as Excel
+      </button>
+    </div>
+  );
+
   const renderButtons = (isMobile: boolean) => (
-    <div ref={!isMobile ? menuRef : undefined} className={`relative gap-2 ${isMobile ? "flex w-full" : "inline-flex"}`}>
-      <button
-        disabled={disabled || busy}
-        onClick={() => setOpenMenu(openMenu === "download" ? null : "download")}
-        className={`inline-flex items-center justify-center gap-1.5 rounded-md bg-gray-900 px-3 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40 disabled:hover:bg-gray-900 ${
-          isMobile ? "flex-1 py-2.5" : "py-1.5"
-        }`}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-        {busy ? "..." : "Download"}
-      </button>
-      <button
-        disabled={disabled || busy}
-        onClick={() => setOpenMenu(openMenu === "share" ? null : "share")}
-        className={`inline-flex items-center justify-center gap-1.5 rounded-md bg-gray-900 px-3 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40 disabled:hover:bg-gray-900 ${
-          isMobile ? "flex-1 py-2.5" : "py-1.5"
-        }`}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="18" cy="5" r="3" />
-          <circle cx="6" cy="12" r="3" />
-          <circle cx="18" cy="19" r="3" />
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-        </svg>
-        Share
-      </button>
+    <div ref={!isMobile ? menuRef : undefined} className={`gap-2 ${isMobile ? "flex w-full" : "inline-flex"}`}>
+      <div className={`relative ${isMobile ? "flex-1" : ""}`}>
+        <button
+          disabled={disabled || busy}
+          onClick={() => setOpenMenu(openMenu === "download" ? null : "download")}
+          className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-gray-900 px-3 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40 disabled:hover:bg-gray-900 ${
+            isMobile ? "py-2.5" : "py-1.5"
+          }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {busy ? "..." : "Download"}
+        </button>
+        {openMenu === "download" && dropdownItems("download", isMobile)}
+      </div>
+      <div className={`relative ${isMobile ? "flex-1" : ""}`}>
+        <button
+          disabled={disabled || busy}
+          onClick={() => setOpenMenu(openMenu === "share" ? null : "share")}
+          className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-gray-900 px-3 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40 disabled:hover:bg-gray-900 ${
+            isMobile ? "py-2.5" : "py-1.5"
+          }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+          </svg>
+          Share
+        </button>
+        {openMenu === "share" && dropdownItems("share", isMobile)}
+      </div>
       <a
         href="https://www.linkedin.com/in/saifeemustafa/"
         target="_blank"
@@ -196,29 +455,6 @@ export default function ExportMenu({
         </svg>
         Contact
       </a>
-
-      {openMenu && (
-        <div
-          className={`absolute z-50 rounded-md border border-gray-200 bg-white py-1 shadow-lg ${
-            isMobile
-              ? "bottom-full left-0 mb-1"
-              : "top-full left-0 mt-1"
-          }`}
-        >
-          <button
-            onClick={() => handleExport(openMenu, "png")}
-            className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
-          >
-            as PNG
-          </button>
-          <button
-            onClick={() => handleExport(openMenu, "pdf")}
-            className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
-          >
-            as PDF
-          </button>
-        </div>
-      )}
     </div>
   );
 
