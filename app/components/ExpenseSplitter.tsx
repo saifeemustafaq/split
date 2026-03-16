@@ -5,6 +5,8 @@ import MemberBar from "./MemberBar";
 import ItemList from "./ItemList";
 import ExtrasBar from "./ExtrasBar";
 import SummaryPanel from "./SummaryPanel";
+import ExportMenu from "./ExportMenu";
+import HowToUseModal from "./HowToUseModal";
 
 export interface Member {
   id: string;
@@ -58,6 +60,7 @@ const DEFAULT_MEMBERS: Member[] = [
 export default function ExpenseSplitter() {
   const [members, setMembers] = useState<Member[]>(DEFAULT_MEMBERS);
   const [entries, setEntries] = useState<Entry[]>([createEmptyEntry()]);
+  const [showHowTo, setShowHowTo] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [showTax, setShowTax] = useState(false);
   const [showDelivery, setShowDelivery] = useState(false);
@@ -214,27 +217,51 @@ export default function ExpenseSplitter() {
   }, [entries, members, taxAmount, deliveryAmount, showTax, showDelivery]);
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen bg-[var(--background)] pb-20 md:pb-0">
+      <HowToUseModal open={showHowTo} onClose={() => setShowHowTo(false)} />
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         <header className="mb-6">
-          <h1 className="mb-4 text-lg font-semibold tracking-tight text-gray-900">
-            MakSplit
-          </h1>
+          <button
+            onClick={() => setShowHowTo(true)}
+            className="group mb-4 flex items-center gap-1.5"
+          >
+            <h1 className="text-lg font-semibold tracking-tight text-gray-900">
+              Splitor
+            </h1>
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] font-medium text-gray-500 transition-colors group-hover:bg-gray-900 group-hover:text-white">
+              ?
+            </span>
+          </button>
           <MemberBar
             members={members}
             onAdd={addMember}
             onRemove={removeMember}
           />
-          <button
-            onClick={() => setShowDescription((prev) => !prev)}
-            className={`mt-3 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              showDescription
-                ? "bg-gray-900 text-white hover:bg-gray-800"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-            }`}
-          >
-            {showDescription ? "- Description" : "+ Description"}
-          </button>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setShowDescription((prev) => !prev)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                showDescription
+                  ? "bg-gray-900 text-white hover:bg-gray-800"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {showDescription ? "- Description" : "+ Description"}
+            </button>
+            <div className="ml-auto">
+              <ExportMenu
+                entries={entries}
+                members={members}
+                showDescription={showDescription}
+                subtotals={calculated.subtotals}
+                totals={calculated.totals}
+                grandSubtotal={calculated.grandSubtotal}
+                grandTotal={calculated.grandTotal}
+                taxValue={calculated.taxValue}
+                deliveryValue={calculated.deliveryValue}
+              />
+            </div>
+          </div>
         </header>
 
         <div className="flex flex-col gap-6 md:flex-row">

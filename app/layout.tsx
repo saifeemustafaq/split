@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MakSplit",
-  description: "Shopping Expense Splitter",
+  title: "Splitor",
+  description: "Split expenses instantly",
 };
 
 export default function RootLayout({
