@@ -242,7 +242,7 @@ export default function ExpenseSplitter() {
               onClick={() => setShowDescription((prev) => !prev)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 showDescription
-                  ? "bg-gray-900 text-white hover:bg-gray-800"
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
                   : "bg-gray-100 text-gray-500 hover:bg-gray-200"
               }`}
             >
