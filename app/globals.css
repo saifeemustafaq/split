@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #fafafa;
   --foreground: #111827;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
 }
 
 @theme inline {
@@ -20,4 +27,8 @@ body {
 
 input::placeholder {
   color: #9ca3af;
+}
+
+.dark input::placeholder {
+  color: #4b5563;
 }

@@ -7,6 +7,7 @@ import ExtrasBar from "./ExtrasBar";
 import SummaryPanel from "./SummaryPanel";
 import ExportMenu from "./ExportMenu";
 import HowToUseModal from "./HowToUseModal";
+import ThemeToggle from "./ThemeToggle";
 
 export interface Member {
   id: string;
@@ -221,17 +222,20 @@ export default function ExpenseSplitter() {
       <HowToUseModal open={showHowTo} onClose={() => setShowHowTo(false)} />
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         <header className="mb-6">
-          <button
-            onClick={() => setShowHowTo(true)}
-            className="group mb-4 flex items-center gap-1.5"
-          >
-            <h1 className="text-lg font-semibold tracking-tight text-gray-900">
-              Splitor
-            </h1>
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] font-medium text-gray-500 transition-colors group-hover:bg-gray-900 group-hover:text-white">
-              ?
-            </span>
-          </button>
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              onClick={() => setShowHowTo(true)}
+              className="group flex items-center gap-1.5"
+            >
+              <h1 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                Splitor
+              </h1>
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] font-medium text-gray-500 transition-colors group-hover:bg-gray-900 group-hover:text-white dark:bg-gray-700 dark:text-gray-400 dark:group-hover:bg-white dark:group-hover:text-gray-900">
+                ?
+              </span>
+            </button>
+            <ThemeToggle />
+          </div>
           <MemberBar
             members={members}
             onAdd={addMember}
@@ -243,7 +247,7 @@ export default function ExpenseSplitter() {
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 showDescription
                   ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
               }`}
             >
               {showDescription ? "- Description" : "+ Description"}

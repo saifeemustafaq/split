@@ -27,12 +27,12 @@ export default function HowToUseModal({ open, onClose }: HowToUseModalProps) {
       onClick={(e) => {
         if (e.target === backdropRef.current) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60"
     >
-      <div className="relative max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+      <div className="relative max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800 dark:shadow-black/30">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          className="absolute top-4 right-4 flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
           aria-label="Close"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -41,13 +41,13 @@ export default function HowToUseModal({ open, onClose }: HowToUseModalProps) {
           </svg>
         </button>
 
-        <h2 className="mb-4 text-base font-semibold text-gray-900">
+        <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-gray-100">
           How to use Splitor
         </h2>
 
-        <div className="space-y-4 text-sm leading-relaxed text-gray-600">
+        <div className="space-y-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
           <section>
-            <h3 className="mb-1 font-medium text-gray-900">Quick start</h3>
+            <h3 className="mb-1 font-medium text-gray-900 dark:text-gray-100">Quick start</h3>
             <p>
               Add members at the top, then type item costs in the rows below.
               Tap the member initials to assign who shares each item. Totals
@@ -56,7 +56,7 @@ export default function HowToUseModal({ open, onClose }: HowToUseModalProps) {
           </section>
 
           <section>
-            <h3 className="mb-1 font-medium text-gray-900">Quick-entry shorthand</h3>
+            <h3 className="mb-1 font-medium text-gray-900 dark:text-gray-100">Quick-entry shorthand</h3>
             <p>
               Type the amount followed by member initials to auto-assign.
               For example, if you have members <strong>M</strong>ustafa and{" "}
@@ -64,22 +64,22 @@ export default function HowToUseModal({ open, onClose }: HowToUseModalProps) {
             </p>
             <ul className="mt-1.5 space-y-1 pl-4">
               <li className="list-disc">
-                <code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-800">100mr</code>{" "}
+                <code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-800 dark:bg-gray-700 dark:text-gray-200">100mr</code>{" "}
                 — $100 split between M and R
               </li>
               <li className="list-disc">
-                <code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-800">50m</code>{" "}
+                <code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-800 dark:bg-gray-700 dark:text-gray-200">50m</code>{" "}
                 — $50 for M only
               </li>
               <li className="list-disc">
-                <code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-800">25mra</code>{" "}
+                <code className="rounded bg-gray-100 px-1 py-0.5 text-xs text-gray-800 dark:bg-gray-700 dark:text-gray-200">25mra</code>{" "}
                 — $25 split among all three
               </li>
             </ul>
           </section>
 
           <section>
-            <h3 className="mb-1 font-medium text-gray-900">Keyboard navigation</h3>
+            <h3 className="mb-1 font-medium text-gray-900 dark:text-gray-100">Keyboard navigation</h3>
             <ul className="space-y-1 pl-4">
               <li className="list-disc">
                 <strong>Tab</strong> on cost field — jump to next row
@@ -97,7 +97,7 @@ export default function HowToUseModal({ open, onClose }: HowToUseModalProps) {
           </section>
 
           <section>
-            <h3 className="mb-1 font-medium text-gray-900">Tax &amp; Delivery</h3>
+            <h3 className="mb-1 font-medium text-gray-900 dark:text-gray-100">Tax &amp; Delivery</h3>
             <p>
               Use the <strong>+ Tax</strong> and <strong>+ Delivery</strong>{" "}
               buttons to add extra charges. These are distributed proportionally
@@ -106,7 +106,7 @@ export default function HowToUseModal({ open, onClose }: HowToUseModalProps) {
           </section>
 
           <section>
-            <h3 className="mb-1 font-medium text-gray-900">Export</h3>
+            <h3 className="mb-1 font-medium text-gray-900 dark:text-gray-100">Export</h3>
             <p>
               Use <strong>Download</strong> or <strong>Share</strong> to export
               the split as a PNG image or PDF document.
