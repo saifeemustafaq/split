@@ -26,8 +26,8 @@ export default function SummaryPanel({
 
   if (members.length < 2) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <p className="text-center text-sm text-gray-400">
+      <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <p className="text-center text-sm text-gray-400 dark:text-gray-500">
           Add members to see the split.
         </p>
       </div>
@@ -36,9 +36,9 @@ export default function SummaryPanel({
 
   if (!hasAnyTotal) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900">Split</h2>
-        <p className="text-sm text-gray-400">
+      <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Split</h2>
+        <p className="text-sm text-gray-400 dark:text-gray-500">
           Add items and assign members to see the split.
         </p>
       </div>
@@ -46,8 +46,8 @@ export default function SummaryPanel({
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5">
-      <h2 className="mb-4 text-sm font-semibold text-gray-900">Split</h2>
+    <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+      <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">Split</h2>
 
       <div className="space-y-2.5">
         {members.map((member) => {
@@ -57,19 +57,19 @@ export default function SummaryPanel({
 
           return (
             <div key={member.id} className="flex items-baseline justify-between">
-              <span className="text-sm text-gray-600">{member.name}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{member.name}</span>
               <div className="text-right">
                 {hasExtras && extra > 0 ? (
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
                       {sub.toFixed(2)} + {extra.toFixed(2)}
                     </span>
-                    <span className="text-sm font-semibold text-emerald-600">
+                    <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                       ${total.toFixed(2)}
                     </span>
                   </div>
                 ) : (
-                  <span className="text-sm font-semibold text-emerald-600">
+                  <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                     ${total.toFixed(2)}
                   </span>
                 )}
@@ -79,21 +79,21 @@ export default function SummaryPanel({
         })}
       </div>
 
-      <div className="mt-4 border-t border-gray-100 pt-4">
+      <div className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-700">
         {hasExtras && (
           <div className="mb-3 space-y-1">
-            <div className="flex justify-between text-xs text-gray-400">
+            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
               <span>Subtotal</span>
               <span>${grandSubtotal.toFixed(2)}</span>
             </div>
             {taxValue > 0 && (
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
                 <span>Tax</span>
                 <span>${taxValue.toFixed(2)}</span>
               </div>
             )}
             {deliveryValue > 0 && (
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500">
                 <span>Delivery</span>
                 <span>${deliveryValue.toFixed(2)}</span>
               </div>
@@ -102,8 +102,8 @@ export default function SummaryPanel({
         )}
 
         <div className="flex items-baseline justify-between">
-          <span className="text-sm font-medium text-gray-900">Total</span>
-          <span className="text-2xl font-bold text-gray-900">
+          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Total</span>
+          <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             ${grandTotal.toFixed(2)}
           </span>
         </div>

@@ -100,8 +100,8 @@ export default function ItemList({
 
   if (members.length < 2) {
     return (
-      <div className="rounded-lg border border-dashed border-gray-200 bg-white px-6 py-12 text-center">
-        <p className="text-sm text-gray-400">
+      <div className="rounded-lg border border-dashed border-gray-200 bg-white px-6 py-12 text-center dark:border-gray-700 dark:bg-gray-800">
+        <p className="text-sm text-gray-400 dark:text-gray-500">
           Add at least 2 members above to start adding items.
         </p>
       </div>

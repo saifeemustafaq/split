@@ -61,11 +61,11 @@ const ItemRow = forwardRef<HTMLInputElement, ItemRowProps>(
             onChange={(e) => onUpdateDescription(entry.id, e.target.value)}
             onKeyDown={handleDescKeyDown}
             placeholder="Description"
-            className="h-9 w-32 shrink-0 rounded-md border border-gray-200 bg-white px-2.5 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 sm:w-40"
+            className="h-9 w-32 shrink-0 rounded-md border border-gray-200 bg-white px-2.5 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-600 sm:w-40"
           />
         )}
         <div className="relative flex-1">
-          <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-xs text-gray-300">
+          <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-xs text-gray-300 dark:text-gray-600">
             $
           </span>
           <input
@@ -75,7 +75,7 @@ const ItemRow = forwardRef<HTMLInputElement, ItemRowProps>(
             onChange={(e) => onUpdate(entry.id, e.target.value)}
             onKeyDown={handleCostKeyDown}
             placeholder={`Item ${index + 1}`}
-            className="h-9 w-full rounded-md border border-gray-200 bg-white pr-2 pl-6 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            className="h-9 w-full rounded-md border border-gray-200 bg-white pr-2 pl-6 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-600"
           />
         </div>
 
@@ -89,8 +89,8 @@ const ItemRow = forwardRef<HTMLInputElement, ItemRowProps>(
                 onClick={() => onToggleAssignee(entry.id, member.id)}
                 className={`flex h-8 min-w-[32px] items-center justify-center rounded-full px-2 text-xs font-medium transition-colors ${
                   active
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+                    ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
+                    : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:bg-gray-700 dark:text-gray-500 dark:hover:bg-gray-600 dark:hover:text-gray-300"
                 }`}
                 title={member.name}
               >
@@ -103,7 +103,7 @@ const ItemRow = forwardRef<HTMLInputElement, ItemRowProps>(
         <button
           tabIndex={-1}
           onClick={() => onDelete(entry.id)}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-300 transition-all hover:bg-red-50 hover:text-red-400 md:opacity-0 md:group-hover:opacity-100"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-300 transition-all hover:bg-red-50 hover:text-red-400 dark:text-gray-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 md:opacity-0 md:group-hover:opacity-100"
           aria-label="Delete row"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

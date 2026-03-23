@@ -29,7 +29,7 @@ export default function ExtrasBar({
           className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
             showTax
               ? "bg-blue-600 text-white hover:bg-blue-700"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
           }`}
         >
           {showTax ? "- Tax" : "+ Tax"}
@@ -39,7 +39,7 @@ export default function ExtrasBar({
           className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
             showDelivery
               ? "bg-blue-600 text-white hover:bg-blue-700"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
           }`}
         >
           {showDelivery ? "- Delivery" : "+ Delivery"}
@@ -50,7 +50,7 @@ export default function ExtrasBar({
         <div className="flex gap-2">
           {showTax && (
             <div className="relative">
-              <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-xs text-gray-300">
+              <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-xs text-gray-300 dark:text-gray-600">
                 $
               </span>
               <input
@@ -58,13 +58,13 @@ export default function ExtrasBar({
                 value={taxAmount}
                 onChange={(e) => onTaxChange(e.target.value)}
                 placeholder="Tax"
-                className="h-8 w-28 rounded-md border border-gray-200 bg-white pr-2 pl-6 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                className="h-8 w-28 rounded-md border border-gray-200 bg-white pr-2 pl-6 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-600"
               />
             </div>
           )}
           {showDelivery && (
             <div className="relative">
-              <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-xs text-gray-300">
+              <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-xs text-gray-300 dark:text-gray-600">
                 $
               </span>
               <input
@@ -72,7 +72,7 @@ export default function ExtrasBar({
                 value={deliveryAmount}
                 onChange={(e) => onDeliveryChange(e.target.value)}
                 placeholder="Delivery"
-                className="h-8 w-28 rounded-md border border-gray-200 bg-white pr-2 pl-6 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                className="h-8 w-28 rounded-md border border-gray-200 bg-white pr-2 pl-6 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-600"
               />
             </div>
           )}

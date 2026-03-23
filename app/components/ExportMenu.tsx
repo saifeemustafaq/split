@@ -379,25 +379,25 @@ export default function ExportMenu({
 
   const dropdownItems = (action: "download" | "share", isMobile: boolean) => (
     <div
-      className={`absolute z-50 min-w-[100px] rounded-md border border-gray-200 bg-white py-1 shadow-lg ${
+      className={`absolute z-50 min-w-[100px] rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:shadow-black/30 ${
         isMobile ? "bottom-full mb-1" : "top-full mt-1"
       }`}
     >
       <button
         onClick={() => handleExport(action, "png")}
-        className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+        className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
       >
         as PNG
       </button>
       <button
         onClick={() => handleExport(action, "pdf")}
-        className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+        className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
       >
         as PDF
       </button>
       <button
         onClick={() => handleExcelExport(action)}
-        className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+        className="block w-full px-4 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
       >
         as Excel
       </button>
@@ -410,7 +410,7 @@ export default function ExportMenu({
         <button
           disabled={disabled || busy}
           onClick={() => setOpenMenu(openMenu === "download" ? null : "download")}
-          className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-gray-900 px-3 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40 disabled:hover:bg-gray-900 ${
+          className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-gray-900 px-3 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40 disabled:hover:bg-gray-900 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200 dark:disabled:hover:bg-gray-100 ${
             isMobile ? "py-2.5" : "py-1.5"
           }`}
         >
@@ -427,7 +427,7 @@ export default function ExportMenu({
         <button
           disabled={disabled || busy}
           onClick={() => setOpenMenu(openMenu === "share" ? null : "share")}
-          className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-gray-900 px-3 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40 disabled:hover:bg-gray-900 ${
+          className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-gray-900 px-3 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40 disabled:hover:bg-gray-900 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200 dark:disabled:hover:bg-gray-100 ${
             isMobile ? "py-2.5" : "py-1.5"
           }`}
         >
@@ -446,7 +446,7 @@ export default function ExportMenu({
         href="https://www.linkedin.com/in/saifeemustafa/"
         target="_blank"
         rel="noopener noreferrer"
-        className={`inline-flex items-center justify-center gap-1.5 rounded-md bg-gray-900 px-3 text-xs font-medium text-white transition-colors hover:bg-gray-800 ${
+        className={`inline-flex items-center justify-center gap-1.5 rounded-md bg-gray-900 px-3 text-xs font-medium text-white transition-colors hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200 ${
           isMobile ? "flex-1 py-2.5" : "py-1.5"
         }`}
       >
@@ -466,7 +466,7 @@ export default function ExportMenu({
       {/* Mobile fixed bottom bar */}
       <div
         ref={menuRef}
-        className="fixed right-0 bottom-0 left-0 z-40 border-t border-gray-200 bg-white px-4 py-3 md:hidden"
+        className="fixed right-0 bottom-0 left-0 z-40 border-t border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800 md:hidden"
       >
         <div className="mx-auto max-w-5xl">
           {renderButtons(true)}
