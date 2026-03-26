@@ -1,9 +1,10 @@
-# Product Requirements Document — MakSplit (Next.js)
+# Product Requirements Document — Splitor (Next.js)
 
 | Field            | Detail                                          |
 |------------------|-------------------------------------------------|
-| **Product Name** | MakSplit — Shopping Expense Splitter             |
+| **Product Name** | Splitor — Shopping Expense Splitter              |
 | **Platform**     | Web (Next.js + React)                            |
+| **Hosting**      | Netlify — https://splitor.netlify.app/           |
 | **Stack**        | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
 | **Architecture** | Single-page client-side app (`"use client"`)     |
 | **State**        | React `useState` — ephemeral, in-memory only     |
@@ -12,7 +13,7 @@
 
 ## 1. What This App Does
 
-MakSplit is a zero-friction, single-screen expense splitter for shared shopping trips. Users enter item costs, tag who each item is for, and see real-time per-person totals. No accounts, no setup, no limits.
+Splitor is a zero-friction, single-screen expense splitter for shared shopping trips. Users enter item costs, tag who each item is for, and see real-time per-person totals. No accounts, no setup, no limits.
 
 ---
 
@@ -22,7 +23,7 @@ MakSplit is a zero-friction, single-screen expense splitter for shared shopping 
 
 | Aspect | Detail |
 |--------|--------|
-| **Default members** | The app starts with no members. Users add all members themselves on first use. |
+| **Default members** | The app starts with three seeded members (`MS`, `AD`, `RS`). Users can remove these and add their own. |
 | **Add member** | A text input + button lets the user add a new member by name. Duplicate names are rejected. |
 | **Remove member** | Each member has a remove (x) button. Removing a member removes their column from all entries and recalculates totals. |
 | **Member initials** | Each member is identified by the first character of their name (lowercased) for quick-entry syntax. If two members share the same first letter, the quick-entry assigns to both. |
@@ -32,7 +33,8 @@ MakSplit is a zero-friction, single-screen expense splitter for shared shopping 
 
 | Aspect | Detail |
 |--------|--------|
-| **Entry row** | Each row contains: a cost text input, one checkbox per member, and a delete button. |
+| **Entry row** | Each row contains: a cost text input, an optional description field, one checkbox per member, and a delete button. |
+| **Descriptions** | A global toggle ("+ Description" / "- Description") shows or hides a description text input on every row. Descriptions are informational and do not affect calculations. |
 | **Auto row addition** | When the user types any character in the last row's cost field, a new empty row is appended automatically. |
 | **Row deletion** | Clicking the trash icon removes the row. If all rows are deleted, one empty row is restored. |
 | **Inline editing** | Users can click any cost field to edit it. Changes are reflected in real-time. |
@@ -70,8 +72,35 @@ MakSplit is a zero-friction, single-screen expense splitter for shared shopping 
 
 | Aspect | Detail |
 |--------|--------|
-| **Tab** | Moves between cost fields and checkboxes in natural DOM order. |
-| **Enter in cost field** | Moves focus to the next row's cost field (or creates one if at the end). |
+| **Enter / Tab in cost field** | Both move focus to the next row's cost field (or create a new row if at the end). Tab's default behavior is prevented in cost fields to keep data entry fast. |
+| **Tab in description field** | Moves focus to the next row's cost field. |
+| **Enter in description field** | Moves focus to the next row's description field. |
+
+### F7 — Export & Share
+
+| Aspect | Detail |
+|--------|--------|
+| **Export formats** | PNG (receipt image), PDF, and Excel (`.xlsx` with formulas). |
+| **Receipt rendering** | A hidden DOM element is rendered with a styled receipt layout. `html2canvas` captures it as a canvas, which is then converted to PNG or fed into `jspdf` for PDF. |
+| **Excel export** | Uses `exceljs` (dynamically imported) to generate a workbook with item rows, member columns, and formula-based totals. |
+| **Web Share API** | When `navigator.canShare` supports file sharing (mostly mobile), PNG and PDF exports offer a "Share" action using the native share sheet. |
+| **Contact link** | A LinkedIn profile link is included in the export menu area. |
+
+### F8 — Dark Mode
+
+| Aspect | Detail |
+|--------|--------|
+| **Implementation** | Uses `next-themes` with a `ThemeProvider` wrapping the app. |
+| **Toggle** | A theme toggle button in the header switches between light and dark modes. |
+| **System default** | The app respects the user's OS-level color scheme preference on first load. |
+
+### F9 — How to Use Modal
+
+| Aspect | Detail |
+|--------|--------|
+| **Trigger** | A help button ("?") in the header opens the modal. |
+| **Content** | Explains the quick-entry syntax, member management, and general usage. |
+| **Dismiss** | Closed via Escape key, clicking the backdrop, or a close button. |
 
 ---
 
@@ -81,7 +110,7 @@ MakSplit is a zero-friction, single-screen expense splitter for shared shopping 
 
 - **Minimalist** — Only show what's needed. No decorative elements, no unnecessary dividers, no emoji overload.
 - **Functional typography** — Use the Geist Sans font (already configured). Hierarchy through size and weight, not color.
-- **Monochrome with subtle accent** — The primary palette is neutral grays and blacks. One accent color (blue-600 / `#2563EB`) for interactive elements and highlights.
+- **Monochrome with subtle accent** — The primary palette is neutral grays and blacks. One accent color (blue-600 / `#2563EB`) for interactive elements and highlights. Dark mode inverts the palette using `next-themes`.
 - **Density over whitespace** — This is a data-entry tool. Rows should be compact so users can see many items without scrolling.
 - **Mobile-first** — The layout must work well on a phone screen (single column, stacked panels). On desktop, it expands to a two-panel layout.
 
@@ -89,7 +118,7 @@ MakSplit is a zero-friction, single-screen expense splitter for shared shopping 
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  MakSplit                          [members...] │  ← Header: app name + member chips
+│  Splitor              [?] [🌙]     [members...] │  ← Header: app name + help + theme toggle + member chips
 ├─────────────────────────────────────────────────┤
 │                                                 │
 │  ┌─────────────────────┐  ┌───────────────────┐ │
@@ -101,7 +130,7 @@ MakSplit is a zero-friction, single-screen expense splitter for shared shopping 
 │  │  [cost] [A][B][C] 🗑│  │                   │ │
 │  │  [    empty row   ] │  │  ────────────────  │ │
 │  │                     │  │  Total:   $XX.XX  │ │
-│  │  [+ Tax] [+ Delivery]│ │                   │ │
+│  │  [+Desc][+Tax][+Dlvr] │ │                   │ │
 │  │  [tax input]        │  │  (subtotal, tax,  │ │
 │  │  [delivery input]   │  │   delivery shown  │ │
 │  │                     │  │   when active)    │ │
@@ -118,10 +147,13 @@ MakSplit is a zero-friction, single-screen expense splitter for shared shopping 
 
 | Component | Description |
 |-----------|-------------|
-| **Header** | App name "MakSplit" on the left. Member management area on the right: inline input to add a member + existing members as removable chips/pills. |
-| **Item Row** | A horizontal row: cost input (flex-grow), compact checkbox toggles for each member (small pill-style toggles showing initials, not full checkboxes), and a subtle delete icon. |
-| **Tax/Delivery Bar** | Two small toggle buttons below the item list. When active, an input field slides in below each. |
+| **Header** | App name "Splitor" on the left with a help ("?") button. Theme toggle and member management area on the right: inline input to add a member + existing members as removable chips/pills. |
+| **Item Row** | A horizontal row: cost input (flex-grow), optional description input, compact checkbox toggles for each member (small pill-style toggles showing initials, not full checkboxes), and a subtle delete icon. |
+| **Tax/Delivery Bar** | Toggle buttons below the item list for descriptions, tax, and delivery. When active, corresponding input fields appear. |
 | **Summary Panel** | Clean card with per-person breakdown. Each person's name + amount. When extras exist, a finer-grained breakdown (subtotal + tax share + delivery share = total). Grand total at the bottom, prominent. |
+| **Export Menu** | Download buttons for PNG, PDF, and Excel exports. Share buttons (via Web Share API) when supported. Contact link. |
+| **How to Use Modal** | Overlay modal explaining quick-entry syntax and app usage. Dismissible via Escape, backdrop click, or close button. |
+| **Theme Toggle** | Button to switch between light and dark mode. |
 | **Empty State** | When no members exist: centered message prompting to add members. When no items have costs + assignments: "Add items to see the split." |
 
 ### 3.4 Interaction Details
@@ -168,19 +200,21 @@ interface Member {
 }
 
 interface Entry {
-  id: string;           // crypto.randomUUID()
-  rawInput: string;     // what the user typed (e.g. "15.99mr")
-  cost: number;         // parsed numeric value
-  assignees: Set<string>; // set of member IDs
+  id: string;                        // crypto.randomUUID()
+  rawInput: string;                  // what the user typed (e.g. "15.99mr")
+  cost: number;                      // parsed numeric value
+  description: string;               // optional item description
+  assignees: Record<string, boolean>; // member ID → assigned flag
 }
 
 // Top-level state
-members: Member[]
+members: Member[]           // initialized with 3 default members
 entries: Entry[]
 showTax: boolean
 showDelivery: boolean
-taxAmount: string       // raw input string
-deliveryAmount: string  // raw input string
+showDescription: boolean    // global toggle for description fields
+taxAmount: string           // raw input string
+deliveryAmount: string      // raw input string
 ```
 
 ---
@@ -222,8 +256,11 @@ grandTotal = sum of all totals
 | **No external state library** | The state is simple enough for `useState` + prop drilling. No need for Zustand/Redux. |
 | **No database / API** | All data is ephemeral. Closing the tab loses everything (acceptable for v1). |
 | **Tailwind CSS** | Already configured in the project. Enables rapid, consistent styling. |
-| **No additional dependencies** | The app can be built entirely with Next.js + React + Tailwind. No need for UI component libraries. |
+| **`next-themes`** | Lightweight dark mode with system preference detection. |
+| **`exceljs`** | Generates `.xlsx` files with formulas for Excel export. Dynamically imported to avoid bloating the initial bundle. |
+| **`html2canvas` + `jspdf`** | Renders a styled receipt DOM node to PNG/PDF for download or sharing. |
 | **Geist font** | Already configured. Clean, modern, good for data-dense UIs. |
+| **Netlify hosting** | Static/SSR deploy via Netlify at https://splitor.netlify.app/. |
 
 ---
 
@@ -231,16 +268,20 @@ grandTotal = sum of all totals
 
 ```
 app/
-  layout.tsx          — Root layout (font loading, metadata)
+  layout.tsx          — Root layout (font loading, metadata, ThemeProvider)
   globals.css         — Tailwind imports + CSS custom properties
   page.tsx            — Main page (thin wrapper, renders <ExpenseSplitter />)
   components/
     ExpenseSplitter.tsx   — Top-level client component, owns all state
     MemberBar.tsx         — Member add input + member chips
-    ItemRow.tsx           — Single item entry row
+    ItemRow.tsx           — Single item entry row (cost, description, assignees)
     ItemList.tsx          — List of ItemRows + auto-add logic
-    ExtrasBar.tsx         — Tax/delivery toggle buttons + inputs
+    ExtrasBar.tsx         — Tax/delivery/description toggle buttons + inputs
     SummaryPanel.tsx      — Per-person breakdown + grand total
+    ExportMenu.tsx        — Download (PNG/PDF/Excel) + Share via Web Share API
+    HowToUseModal.tsx     — Help modal with usage instructions
+    ThemeProvider.tsx      — next-themes provider wrapper
+    ThemeToggle.tsx        — Light/dark mode toggle button
 ```
 
 ---
@@ -252,9 +293,7 @@ app/
 - Receipt OCR
 - Settlement suggestions ("A pays B $X")
 - Currency selection
-- CSV export
 - PWA / offline support
-- Dark mode (can be added later, but not v1)
 - Undo/redo
 
 ---
@@ -266,5 +305,6 @@ app/
 | Time from page load to first entry | < 3 seconds |
 | Works on mobile Safari + Chrome | Yes |
 | Handles 100 items without perceptible lag | Yes |
-| Zero external runtime dependencies beyond Next.js/React | Yes |
+| Minimal runtime dependencies | Only `next-themes`, `exceljs`, `html2canvas`, `jspdf` beyond Next.js/React |
 | Lighthouse performance score | > 90 |
+| Live at | https://splitor.netlify.app/ |
