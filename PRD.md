@@ -7,7 +7,7 @@
 | **Hosting**      | Netlify — https://splitor.netlify.app/           |
 | **Stack**        | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
 | **Architecture** | Single-page client-side app (`"use client"`)     |
-| **State**        | React `useState` — ephemeral, in-memory only     |
+| **State**        | React `useState`, persisted to IndexedDB (F10)    |
 
 ---
 
@@ -23,7 +23,7 @@ Splitor is a zero-friction, single-screen expense splitter for shared shopping t
 
 | Aspect | Detail |
 |--------|--------|
-| **Default members** | The app starts with three seeded members (`MS`, `AD`, `RS`). Users can remove these and add their own. |
+| **Default members** | A first-time visitor starts with one seeded member (`MS`). Users can remove it and add their own. On return visits the member list is restored from IndexedDB (see F10). |
 | **Add member** | A text input + button lets the user add a new member by name. Duplicate names are rejected. |
 | **Remove member** | Each member has a remove (x) button. Removing a member removes their column from all entries and recalculates totals. |
 | **Member initials** | Each member is identified by the first character of their name (lowercased) for quick-entry syntax. If two members share the same first letter, the quick-entry assigns to both. |
@@ -101,6 +101,24 @@ Splitor is a zero-friction, single-screen expense splitter for shared shopping t
 | **Trigger** | A help button ("?") in the header opens the modal. |
 | **Content** | Explains the quick-entry syntax, member management, and general usage. |
 | **Dismiss** | Closed via Escape key, clicking the backdrop, or a close button. |
+
+### F10 — Save & Recent History (browser storage)
+
+The browser is the database. Nothing is sent to a server.
+
+| Aspect | Detail |
+|--------|--------|
+| **Backend** | IndexedDB (`splitor`, version 1). If `indexedDB.open` fails or hangs for 3s (private browsing, in-app browsers), the app falls back to `localStorage`, then to an in-memory map. The app never throws over storage. |
+| **Object stores** | `bills` (keyPath `id`, index on `updatedAt`) and `app` (key-value: `draft`, `members`). |
+| **Auto-saved draft** | The live screen is written to `app/draft` on a 400ms debounce and flushed on `visibilitychange`/`pagehide`. Reopening the app restores exactly where the user left off. |
+| **Member memory** | The current member list is stored under `app/members`, so members persist even before any bill is saved. |
+| **Save** | The Save button opens a dialog with the name prefilled as `<date> - $<total>`. A bill loaded from history offers **Update** (same record) or **Save as new**. |
+| **Recent** | The Recent button opens a modal listing every saved bill, newest first, with date, item count, members, and total. Per-bill actions: Load, Export (PNG/PDF/Excel), Rename, Duplicate, Delete. A footer action clears all history. |
+| **Unsaved-work guard** | Loading a bill while the screen has unsaved changes prompts to save first, discard, or cancel. "Unsaved" compares a normalized signature of the screen against the last saved state; trailing empty rows are ignored. |
+| **Duplicate** | Copies regenerate all bill, member, and entry ids and remap assignees, so a copy never shares keys with its source. |
+| **Cross-tab** | Bill mutations broadcast on `BroadcastChannel("splitor")`; an open history list refreshes. The draft is last-write-wins across tabs. |
+| **Resilience** | Records are shape-validated on read; corrupt records and records written by a newer schema version are skipped rather than crashing the list. Writes are serialized through a single queue. `QuotaExceededError` surfaces an inline message. Timestamps are strictly increasing so history order is deterministic. |
+| **No cap** | History is unlimited; JSON bills are small relative to the IndexedDB quota. |
 
 ---
 
@@ -190,7 +208,7 @@ Splitor is a zero-friction, single-screen expense splitter for shared shopping t
 
 ## 4. State Model
 
-All state is managed via React `useState` in a single page component. No server state, no database, no localStorage (v1).
+All state is managed via React `useState` in a single page component, mirrored into browser storage by `useBillStorage` (see F10). No server state, no remote database.
 
 ```typescript
 interface Member {
@@ -207,14 +225,36 @@ interface Entry {
   assignees: Record<string, boolean>; // member ID → assigned flag
 }
 
+interface BillSnapshot {             // everything needed to rebuild the screen
+  members: Member[];
+  entries: Entry[];
+  showDescription: boolean;
+  showTax: boolean;
+  showDelivery: boolean;
+  taxAmount: string;
+  deliveryAmount: string;
+}
+
+interface SavedBill extends BillSnapshot {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  schemaVersion: number;
+  grandTotal: number;       // denormalized for the history list
+  itemCount: number;
+}
+
 // Top-level state
-members: Member[]           // initialized with 3 default members
+members: Member[]           // seeded with MS, or restored from storage
 entries: Entry[]
 showTax: boolean
 showDelivery: boolean
 showDescription: boolean    // global toggle for description fields
 taxAmount: string           // raw input string
 deliveryAmount: string      // raw input string
+currentBillId: string|null  // the saved bill being edited, if any
+currentBillName: string|null
 ```
 
 ---
@@ -254,7 +294,8 @@ grandTotal = sum of all totals
 |----------|-----------|
 | **Client-only (`"use client"`)** | No server-side logic needed. Pure client-side state. |
 | **No external state library** | The state is simple enough for `useState` + prop drilling. No need for Zustand/Redux. |
-| **No database / API** | All data is ephemeral. Closing the tab loses everything (acceptable for v1). |
+| **IndexedDB, no server** | The browser is the database, so there is no backend, no accounts, and no sync. IndexedDB is used over `localStorage` for its larger quota and structured records, with `localStorage` kept as a fallback for browsers that block it. |
+| **No storage library** | The adapter in `lib/db.ts` is ~200 lines and keeps the dependency list minimal, which is an explicit success criterion. |
 | **Tailwind CSS** | Already configured in the project. Enables rapid, consistent styling. |
 | **`next-themes`** | Lightweight dark mode with system preference detection. |
 | **`exceljs`** | Generates `.xlsx` files with formulas for Excel export. Dynamically imported to avoid bloating the initial bundle. |
@@ -278,17 +319,30 @@ app/
     ItemList.tsx          — List of ItemRows + auto-add logic
     ExtrasBar.tsx         — Tax/delivery/description toggle buttons + inputs
     SummaryPanel.tsx      — Per-person breakdown + grand total
-    ExportMenu.tsx        — Download (PNG/PDF/Excel) + Share via Web Share API
+    ExportMenu.tsx        — Save / Recent / Download / Share action bar
+    ReceiptView.tsx       — Printable receipt, captured by html2canvas
+    SaveBillModal.tsx     — Name a bill, update it, or save as new
+    HistoryModal.tsx      — Recent bills: load, export, rename, duplicate, delete
     HowToUseModal.tsx     — Help modal with usage instructions
     ThemeProvider.tsx      — next-themes provider wrapper
     ThemeToggle.tsx        — Light/dark mode toggle button
+  hooks/
+    useBillStorage.ts     — Hydration, debounced draft writes, dirty tracking
+  lib/
+    types.ts              — Member, Entry, BillSnapshot, SavedBill
+    db.ts                 — IndexedDB adapter + localStorage/in-memory fallbacks
+    bills.ts              — Bill repository, draft/member records, cross-tab sync
+    calc.ts               — Pure split calculation
+    snapshot.ts           — Signatures, default names, date formatting
+    exporters.ts          — PNG / PDF / Excel generation
+    id.ts                 — crypto.randomUUID with a fallback
 ```
 
 ---
 
 ## 8. Out of Scope (v1)
 
-- Persistent storage (localStorage, URL state, database)
+- Server-side storage, URL state, or cross-device sync
 - User accounts / authentication
 - Receipt OCR
 - Settlement suggestions ("A pays B $X")

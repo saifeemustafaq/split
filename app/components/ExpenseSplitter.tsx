@@ -1,31 +1,27 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import MemberBar from "./MemberBar";
 import ItemList from "./ItemList";
 import ExtrasBar from "./ExtrasBar";
 import SummaryPanel from "./SummaryPanel";
 import ExportMenu from "./ExportMenu";
 import HowToUseModal from "./HowToUseModal";
+import HistoryModal from "./HistoryModal";
+import SaveBillModal, { type SaveMode } from "./SaveBillModal";
 import ThemeToggle from "./ThemeToggle";
+import { useBillStorage, type HydrationResult } from "../hooks/useBillStorage";
+import { createBill, updateBill } from "../lib/bills";
+import { calculate } from "../lib/calc";
+import { newId } from "../lib/id";
+import { defaultBillName, hasContent, snapshotSignature } from "../lib/snapshot";
+import type { BillSnapshot, Member, Entry, SavedBill } from "../lib/types";
 
-export interface Member {
-  id: string;
-  name: string;
-  initial: string;
-}
-
-export interface Entry {
-  id: string;
-  rawInput: string;
-  cost: number;
-  description: string;
-  assignees: Record<string, boolean>;
-}
+export type { Member, Entry } from "../lib/types";
 
 function createEmptyEntry(): Entry {
   return {
-    id: crypto.randomUUID(),
+    id: newId(),
     rawInput: "",
     cost: 0,
     description: "",
@@ -54,9 +50,19 @@ function parseInput(
 
 const DEFAULT_MEMBERS: Member[] = [
   { id: "default-ms", name: "MS", initial: "m" },
-  { id: "default-ad", name: "AD", initial: "a" },
-  { id: "default-rs", name: "RS", initial: "r" },
 ];
+
+/** Signature of an untouched screen, used to detect whether the user started
+ *  working before the stored draft finished loading. */
+const PRISTINE_SIGNATURE = snapshotSignature({
+  members: DEFAULT_MEMBERS,
+  entries: [],
+  showDescription: false,
+  showTax: false,
+  showDelivery: false,
+  taxAmount: "",
+  deliveryAmount: "",
+});
 
 export default function ExpenseSplitter() {
   const [members, setMembers] = useState<Member[]>(DEFAULT_MEMBERS);
@@ -68,6 +74,68 @@ export default function ExpenseSplitter() {
   const [taxAmount, setTaxAmount] = useState("");
   const [deliveryAmount, setDeliveryAmount] = useState("");
 
+  const [showSave, setShowSave] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [currentBillId, setCurrentBillId] = useState<string | null>(null);
+  const [currentBillName, setCurrentBillName] = useState<string | null>(null);
+
+  const snapshot = useMemo<BillSnapshot>(
+    () => ({
+      members,
+      entries,
+      showDescription,
+      showTax,
+      showDelivery,
+      taxAmount,
+      deliveryAmount,
+    }),
+    [members, entries, showDescription, showTax, showDelivery, taxAmount, deliveryAmount]
+  );
+
+  const snapshotRef = useRef(snapshot);
+  useEffect(() => {
+    snapshotRef.current = snapshot;
+  }, [snapshot]);
+
+  const applySnapshot = useCallback((next: BillSnapshot) => {
+    setMembers(next.members);
+    setEntries(next.entries.length > 0 ? next.entries : [createEmptyEntry()]);
+    setShowDescription(next.showDescription);
+    setShowTax(next.showTax);
+    setShowDelivery(next.showDelivery);
+    setTaxAmount(next.taxAmount);
+    setDeliveryAmount(next.deliveryAmount);
+  }, []);
+
+  const handleHydrate = useCallback(
+    ({ draft, members: storedMembers }: HydrationResult) => {
+      // Never overwrite work the user started while the read was in flight.
+      if (snapshotSignature(snapshotRef.current) !== PRISTINE_SIGNATURE) return false;
+
+      if (draft) {
+        applySnapshot(draft.snapshot);
+        setCurrentBillId(draft.billId);
+        setCurrentBillName(draft.billName);
+        return true;
+      }
+      if (storedMembers && storedMembers.length > 0) {
+        setMembers(storedMembers);
+        return true;
+      }
+      return false;
+    },
+    [applySnapshot]
+  );
+
+  const storage = useBillStorage({
+    snapshot,
+    billId: currentBillId,
+    billName: currentBillName,
+    onHydrate: handleHydrate,
+  });
+
+  const { markSaved } = storage;
+
   const addMember = useCallback(
     (name: string) => {
       const trimmed = name.trim();
@@ -76,7 +144,7 @@ export default function ExpenseSplitter() {
         return;
 
       const newMember: Member = {
-        id: crypto.randomUUID(),
+        id: newId(),
         name: trimmed,
         initial: trimmed[0].toLowerCase(),
       };
@@ -164,62 +232,67 @@ export default function ExpenseSplitter() {
     });
   }, []);
 
-  const calculated = useMemo(() => {
-    const subtotals: Record<string, number> = {};
-    for (const m of members) {
-      subtotals[m.id] = 0;
-    }
+  const calculated = useMemo(() => calculate(snapshot), [snapshot]);
 
-    for (const entry of entries) {
-      if (entry.cost <= 0) continue;
-      const selected = members.filter((m) => entry.assignees[m.id]);
-      if (selected.length === 0) continue;
-      const share = entry.cost / selected.length;
-      for (const m of selected) {
-        subtotals[m.id] += share;
-      }
-    }
+  const saveable = hasContent(snapshot);
+  const hasUnsavedWork = saveable && storage.isDirty;
 
-    const grandSubtotal = Object.values(subtotals).reduce(
-      (sum, v) => sum + v,
-      0
-    );
+  const handleSave = useCallback(
+    async (name: string, mode: SaveMode) => {
+      const current = snapshotRef.current;
+      const saved =
+        mode === "update" && currentBillId
+          ? await updateBill(currentBillId, current, name)
+          : await createBill(name, current);
 
-    const taxValue =
-      showTax && taxAmount.trim()
-        ? Math.max(0, parseFloat(taxAmount) || 0)
-        : 0;
-    const deliveryValue =
-      showDelivery && deliveryAmount.trim()
-        ? Math.max(0, parseFloat(deliveryAmount) || 0)
-        : 0;
-    const extras = taxValue + deliveryValue;
+      setCurrentBillId(saved.id);
+      setCurrentBillName(saved.name);
+      markSaved(current);
+      setShowSave(false);
+    },
+    [currentBillId, markSaved]
+  );
 
-    const totals: Record<string, number> = {};
-    for (const m of members) {
-      if (grandSubtotal > 0 && extras > 0) {
-        const proportion = subtotals[m.id] / grandSubtotal;
-        totals[m.id] = subtotals[m.id] + extras * proportion;
-      } else {
-        totals[m.id] = subtotals[m.id];
-      }
-    }
+  const loadBill = useCallback(
+    (bill: SavedBill) => {
+      applySnapshot(bill);
+      setCurrentBillId(bill.id);
+      setCurrentBillName(bill.name);
+      markSaved(bill);
+    },
+    [applySnapshot, markSaved]
+  );
 
-    const grandTotal = Object.values(totals).reduce((sum, v) => sum + v, 0);
-
-    return {
-      subtotals,
-      totals,
-      grandSubtotal,
-      grandTotal,
-      taxValue,
-      deliveryValue,
-    };
-  }, [entries, members, taxAmount, deliveryAmount, showTax, showDelivery]);
+  const saveCurrentAndLoad = useCallback(
+    async (bill: SavedBill) => {
+      const current = snapshotRef.current;
+      const name = currentBillName ?? defaultBillName(current);
+      if (currentBillId) await updateBill(currentBillId, current, name);
+      else await createBill(name, current);
+      loadBill(bill);
+    },
+    [currentBillId, currentBillName, loadBill]
+  );
 
   return (
     <div className="min-h-screen bg-[var(--background)] pb-20 md:pb-0">
       <HowToUseModal open={showHowTo} onClose={() => setShowHowTo(false)} />
+      {showSave && (
+        <SaveBillModal
+          defaultName={defaultBillName(snapshot)}
+          currentBillName={currentBillName}
+          onClose={() => setShowSave(false)}
+          onSave={handleSave}
+        />
+      )}
+      <HistoryModal
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        currentBillId={currentBillId}
+        hasUnsavedWork={hasUnsavedWork}
+        onLoad={loadBill}
+        onSaveCurrentAndLoad={saveCurrentAndLoad}
+      />
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         <header className="mb-6">
           <div className="mb-4 flex items-center gap-2">
@@ -235,6 +308,12 @@ export default function ExpenseSplitter() {
               </span>
             </button>
             <ThemeToggle />
+            {currentBillName && (
+              <span className="ml-1 truncate text-xs text-gray-400 dark:text-gray-500">
+                {currentBillName}
+                {hasUnsavedWork && " •"}
+              </span>
+            )}
           </div>
           <MemberBar
             members={members}
@@ -263,9 +342,24 @@ export default function ExpenseSplitter() {
                 grandTotal={calculated.grandTotal}
                 taxValue={calculated.taxValue}
                 deliveryValue={calculated.deliveryValue}
+                onSave={() => setShowSave(true)}
+                onOpenHistory={() => setShowHistory(true)}
+                canSave={saveable}
+                isDirty={storage.isDirty}
               />
             </div>
           </div>
+          {storage.writeError && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
+              <span>{storage.writeError}</span>
+              <button
+                onClick={storage.dismissWriteError}
+                className="shrink-0 font-medium underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
         </header>
 
         <div className="flex flex-col gap-6 md:flex-row">
